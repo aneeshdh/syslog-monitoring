@@ -41,34 +41,36 @@ void copySubstring(char *src, char *dest, int beg, int end) {
 
 //month date time user processinfo info
 //0		1	 2    3    4           5
-logEntry* parseEntry(char *line) {
+struct logEntry* parseEntry(char *line) {
 	int len = strlen(line);
-	logEntry curr = malloc(sizeof(logEntry));
-	curr.month = malloc(5 * sizeof(char));
-	curr.date = malloc(2 * sizeof(char));
-	curr.time = malloc(10 * sizeof(char));
-	curr.user = malloc(100 * sizeof(char));
-	curr.procinfo = malloc(100 * sizeof(char));
-	curr.info = malloc(1000 * sizeof(char)); 
+	struct logEntry *curr = malloc(sizeof(struct logEntry));
+	curr->month = malloc(5 * sizeof(char));
+	curr->date = malloc(2 * sizeof(char));
+	curr->time = malloc(10 * sizeof(char));
+	curr->user = malloc(100 * sizeof(char));
+	curr->procinfo = malloc(100 * sizeof(char));
+	curr->info = malloc(1000 * sizeof(char)); 
 
 	int beg = 0, index = 0;
 	for (int i = 0; i < len; i++) {
 		if (index == 4 && line[i] == ':') {
-			copySubstring(line, curr.procinfo, beg, i-1);
+			copySubstring(line, curr->procinfo, beg, i-1);
 			beg = i+1;
 		} else if (index < 4 && line[i] == ' ') {
 			if (index == 0)
-				copySubstring(line, curr.month, beg, i-1);
+				copySubstring(line, curr->month, beg, i-1);
 			else if (index == 1)
-				copySubstring(line, curr.date, beg, i-1);
+				copySubstring(line, curr->date, beg, i-1);
 			else if (index == 2)
-				copySubstring(line, curr.time, beg, i-1);
+				copySubstring(line, curr->time, beg, i-1);
 			else
-				copySubstring(line, curr.user, beg, i-1);
+				copySubstring(line, curr->user, beg, i-1);
 			beg = i+1;
 		}
 	}
-	copySubstring(line, curr.info, beg, len-1);
+	copySubstring(line, curr->info, beg, len-1);
+
+	return curr;
 }
 
 void convertToLower(char* inp) {
