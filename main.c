@@ -14,7 +14,7 @@ struct logEntry {
 	char *fileName = "/var/log/system.log";
 #else
 	//Log location for Linux
-	char *filename = "/var/log/syslog"
+	char *fileName = "/var/log/syslog"
 #endif
 
 char *keys[] = {"bug", "error", "incorrect password"};
