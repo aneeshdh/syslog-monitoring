@@ -4,8 +4,23 @@
 #include <ctype.h>
 #include <unistd.h>
 
+struct numProcessFail {
+	char *procname;
+	int num;
+};
+
+struct numProcessFailNode {
+	struct numProcessFail *curr;
+	struct numProcessFailNode *next;
+};
+
 struct logEntry {
 	char *month, *date, *time, *user, *procinfo, *info;
+};
+
+struct logEntryNode {
+	struct logEntry *curr;
+	struct logEntryNode *next;
 };
 
 /* CONSTANTS */
@@ -21,6 +36,8 @@ char *keys[] = {"bug", "error", "incorrect password"};
 int bufferSize = 1000;
 FILE *fp = NULL;
 int fileOffset = 0;
+struct logEntryNode *logEntryList = NULL;
+struct numProcessFailNode *numProcessFailList = NULL;
 
 /* HELPER FUNCTIONS */
 void openFile() {
@@ -34,9 +51,10 @@ void closeFile() {
 }
 
 void copySubstring(char *src, char *dest, int beg, int end) {
-	for (int i = beg; i < end; i++) {
-		src[i-beg] = dest[beg];
+	for (int i = beg; i <= end; i++) {
+		dest[i-beg] = src[i];
 	}
+	dest[(end-beg+1)] = '\0';
 }
 
 //month date time user processinfo info
@@ -56,6 +74,7 @@ struct logEntry* parseEntry(char *line) {
 		if (index == 4 && line[i] == ':') {
 			copySubstring(line, curr->procinfo, beg, i-1);
 			beg = i+1;
+			index++;
 		} else if (index < 4 && line[i] == ' ') {
 			if (index == 0)
 				copySubstring(line, curr->month, beg, i-1);
@@ -66,11 +85,42 @@ struct logEntry* parseEntry(char *line) {
 			else
 				copySubstring(line, curr->user, beg, i-1);
 			beg = i+1;
+			index++;
 		}
 	}
+
 	copySubstring(line, curr->info, beg, len-1);
 
 	return curr;
+}
+
+void updateNumProcessFail(struct logEntry *curr) {
+	struct numProcessFailNode *temp = numProcessFailList;
+	int found = 0;
+	while (temp != NULL) {
+		if (strcmp(temp->curr->procname, curr->procinfo) == 0) {
+			temp->curr->num++;
+			found = 1;
+
+			if (temp->curr->num % 5 == 0) {
+				printf("%s triggered %d times\n", temp->curr->procname, temp->curr->num);
+			}
+
+			break;
+		}
+
+		temp = temp->next;
+	}
+
+	if (!found) {
+		struct numProcessFailNode *currNode = malloc(sizeof(struct numProcessFailNode));
+		struct numProcessFail *entry = malloc(sizeof(struct numProcessFail));
+		currNode->curr = entry;
+		entry->procname = curr->procinfo;
+		entry->num = 1;
+		currNode->next = numProcessFailList;
+		numProcessFailList = currNode;
+	}
 }
 
 void convertToLower(char* inp) {
@@ -107,11 +157,12 @@ char* readLine() {
 }
 
 int analyse(char *line) {
-	int keywordsFound = 0;
-	keywordsFound += substringSearch(line, keys[0]);
-	keywordsFound += substringSearch(line, keys[1]);
-	keywordsFound += substringSearch(line, keys[2]);
+	int keywordsFound = 0, num = sizeof(keys)/sizeof(keys[0]), i;
 
+	for (i = 0; i < num; i++) {
+		keywordsFound += substringSearch(line, keys[i]);
+	}
+	
 	return (keywordsFound > 0);
 }
 
@@ -121,13 +172,24 @@ void readAvailableData() {
 		currLine = readLine();
 		if (currLine == NULL)
 			break;
+
+		struct logEntry *currLog = parseEntry(currLine);
+		struct logEntryNode *currlogEntryNode = malloc(sizeof(struct logEntryNode));
+
+		currlogEntryNode->curr = currLog;
+		currlogEntryNode->next = logEntryList;
+
+		logEntryList = currlogEntryNode;
+
 		if (analyse(currLine)) {
 			printf("%s\n", currLine);
+			updateNumProcessFail(currLog);
 		}
 	}
 }
 
 int main() {
+	logEntryList = malloc(sizeof(struct logEntryNode));
 	while(1) {
 		openFile();
 		readAvailableData();
